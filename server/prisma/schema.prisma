@@ -1,0 +1,93 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  // output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+model User {
+  id        String    @id @default(cuid())
+  name      String
+  email     String    @unique
+  groups    Group[]   @relation("UserGroups")
+  expenses  Expense[] @relation("UserExpenses")
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt // automatically update when the record is updated
+  ExpenseItemShare ExpenseItemShare[]
+  ExpenseComments ExpenseComments[]
+  ExpenseShares ExpenseShare[]
+}
+
+model Group {
+  id        String    @id @default(cuid())
+  name      String
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt // automatically update when the record is updated
+  members   User[]    @relation("UserGroups")
+  expenses  Expense[]
+}
+
+model Expense {
+  id        String    @id @default(cuid())
+  description String
+  date      DateTime
+  payer     User      @relation("UserExpenses", fields: [payerId], references: [id])
+  payerId   String
+  group     Group?    @relation(fields: [groupId], references: [id])
+  groupId   String?
+  items     ExpenseItem[]
+  comments  ExpenseComments[]
+  shares    ExpenseShare[]
+}
+
+model ExpenseItem {
+  id        String   @id @default(cuid())
+  name      String
+  quantity  Int
+  cost      Float
+  isTaxable Boolean
+  expense   Expense  @relation(fields: [expenseId], references: [id])
+  expenseId String
+  sharedBy  ExpenseItemShare[]
+}
+
+model ExpenseItemShare {
+  id        String   @id @default(cuid())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  item      ExpenseItem @relation(fields: [itemId], references: [id])
+  itemId    String
+}
+
+model ExpenseComments {
+  id        String   @id @default(cuid())
+  comment   String
+  expense   Expense  @relation(fields: [expenseId], references: [id])
+  expenseId String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt // automatically update when the record is updated
+  user      User      @relation(fields: [userId], references: [id])
+  userId    String
+}
+
+model ExpenseShare {
+  id        String   @id @default(cuid())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  expense   Expense  @relation(fields: [expenseId], references: [id])
+  expenseId String
+  shareAmount Float? // Optional: if you want to track specific amounts per user
+  sharePercentage Float? // Optional: if you want to track percentage shares
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
